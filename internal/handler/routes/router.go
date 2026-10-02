@@ -23,7 +23,10 @@ func RouteSetup(db *pgxpool.Pool, logger *zap.Logger) *chi.Mux {
 
 	cfg := utils.MustLoad()
 
-	// Global Middlewares
+	// Global Middlewares Pipeline (Order: RequestID -> Recoverer -> Security -> Logger -> CORS -> RateLimit)
+	r.Use(middleware.RequestID)
+	r.Use(middleware.Recoverer(logger))
+	r.Use(middleware.SecurityHeaders)
 	r.Use(middleware.Logger)
 	r.Use(middleware.CORS)
 	limiter := middleware.NewIPRateLimiter(100, time.Minute)
@@ -35,9 +38,11 @@ func RouteSetup(db *pgxpool.Pool, logger *zap.Logger) *chi.Mux {
 		http.Redirect(w, r, "/swagger/index.html", http.StatusMovedPermanently)
 	})
 
-	// 2. Health Check
+	// 2. Health & Monitoring Probes
 	healthCtrl := controller.NewHealthController(db)
 	r.Get("/health", healthCtrl.Check)
+	r.Get("/health/live", healthCtrl.Live)
+	r.Get("/health/ready", healthCtrl.Ready)
 
 	// 3. Domain Repositories
 	userRepo := repository.NewUserRepo(db, logger)

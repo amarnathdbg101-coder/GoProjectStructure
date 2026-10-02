@@ -38,6 +38,11 @@ tasks:
     cmds:
       - docker compose down
 
+  test:
+    desc: "Run unit tests"
+    cmds:
+      - go test -v ./...
+
   vet:
     desc: "Vet codebase"
     cmds:

@@ -62,7 +62,7 @@ func seedAdminUser(ctx context.Context, db *pgxpool.Pool) {
 	`
 	_, err = db.Exec(ctx, queryInsert, name, email, hashedPassword, role)
 	if err != nil {
-		log.Printf("âš ï¸ Warning: Could not insert admin user: %v", err)
+		log.Printf(" Warning: Could not insert admin user: %v", err)
 	} else {
 		log.Printf("ðŸŽ‰ Seeded default admin user: %s (password: %s)", email, password)
 	}

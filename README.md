@@ -4,6 +4,15 @@ A production-grade, highly modular, scalable Go backend starter template designe
 
 ---
 
+## 📖 Complete Documentation & Guides
+
+Aapki aur kisi bhi naye developer ki aasani ke liye guides/ folder me 2 detailed guides available hain:
+
+- 📘 **[HOW_TO_USE.md](guides/HOW_TO_USE.md)**: Step-by-step guide on how to copy, setup database, run migrations, test in Swagger, run unit tests, and scaffold new domains.
+- 📚 **[FILE_USE_CASES.md](guides/FILE_USE_CASES.md)**: Complete file-by-file index explaining what every single file does, why it exists, and when to modify it.
+
+---
+
 ## âš¡ Quick Start (Under 1 Minute)
 
 ### 1. Copy or Clone
@@ -48,6 +57,8 @@ Server starts at: `http://localhost:8080`
 
 - **Interactive Swagger UI**: `http://localhost:8080/swagger/index.html` (Test all endpoints directly from browser)
 - **Health Check**: `GET /health`
+- **Liveness Probe**: `GET /health/live` (Cloud/Kubernetes auto-restart probe)
+- **Readiness Probe**: `GET /health/ready` (Ensures DB connectivity before accepting traffic)
 - **Register**: `POST /api/v1/auth/register`
 - **Login**: `POST /api/v1/auth/login`
 - **User Profile (Protected)**: `GET /api/v1/auth/profile`
