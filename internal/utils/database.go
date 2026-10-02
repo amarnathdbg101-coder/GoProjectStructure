@@ -37,9 +37,16 @@ func ConnectDB(databaseURL string) (*pgxpool.Pool, error) {
 		config.ConnConfig.DefaultQueryExecMode = pgx.QueryExecModeExec
 	}
 
-	// Production pool tuning for low latency & concurrency
-	config.MaxConns = 30
-	config.MinConns = 5
+	// Adaptive pool tuning: Supabase Pooler (session mode) caps clients to 15.
+	// We set safe default limits to avoid (EMAXCONNSESSION) pool exhaustion.
+	maxConns := int32(10)
+	minConns := int32(2)
+	if !strings.Contains(databaseURL, "pooler") && !strings.Contains(databaseURL, "supabase") {
+		maxConns = 30
+		minConns = 5
+	}
+	config.MaxConns = maxConns
+	config.MinConns = minConns
 	config.MaxConnLifetime = 1 * time.Hour
 	config.MaxConnIdleTime = 30 * time.Minute
 	config.HealthCheckPeriod = 1 * time.Minute
