@@ -1,51 +1,29 @@
+// Package handler provides standard HTTP routing and endpoint registration.
 package handler
 
 import (
 	"net/http"
-	"time"
 
-	_ "github.com/amarnathdbg101-coder/GoProjectStructure/docs"
-	"github.com/amarnathdbg101-coder/GoProjectStructure/pkg/config"
-	"github.com/amarnathdbg101-coder/GoProjectStructure/pkg/middleware"
-
+	"github.com/amarnathdbg101-coder/GoProjectStructure/response"
 	"github.com/go-chi/chi/v5"
-	"github.com/jackc/pgx/v5/pgxpool"
-	httpSwagger "github.com/swaggo/http-swagger/v2"
-	"go.uber.org/zap"
+	"github.com/go-chi/chi/v5/middleware"
 )
 
-// RouteSetup initializes all global middlewares, health probes, and API domain routes.
-func RouteSetup(db *pgxpool.Pool, logger *zap.Logger, cfg config.Config) *chi.Mux {
+// NewRouter constructs a lightweight Chi router with minimal standard middleware.
+// It has zero hardcoded dependencies on specific loggers, databases, or configs,
+// allowing you to compose your own preferred libraries (from C:\Library or external).
+func NewRouter() *chi.Mux {
 	r := chi.NewRouter()
 
-	// Global Middlewares Pipeline (RequestID -> Recoverer -> Security -> Logger -> CORS -> RateLimit)
+	// Lightweight standard Chi middlewares
 	r.Use(middleware.RequestID)
-	r.Use(middleware.Recoverer(logger))
-	r.Use(middleware.SecurityHeaders)
-	r.Use(middleware.Logger)
-	r.Use(middleware.CORS)
-	limiter := middleware.NewIPRateLimiter(100, time.Minute)
-	r.Use(limiter.Middleware())
+	r.Use(middleware.RealIP)
+	r.Use(middleware.Recoverer)
 
-	// 1. Interactive Swagger Documentation UI
-	r.Get("/swagger/*", httpSwagger.WrapHandler)
-	r.Get("/swagger", func(w http.ResponseWriter, r *http.Request) {
-		http.Redirect(w, r, "/swagger/index.html", http.StatusMovedPermanently)
-	})
-
-	// 2. Health & Monitoring Probes
-	healthH := NewHealthHandler(db)
-	r.Get("/health", healthH.Check)
-	r.Get("/health/live", healthH.Live)
-	r.Get("/health/ready", healthH.Ready)
-
-	// 3. API v1 Routes (Mount your domain handlers here)
-	r.Route("/api/v1", func(r chi.Router) {
-		r.Get("/welcome", func(w http.ResponseWriter, r *http.Request) {
-			Success(w, "Welcome to Go Clean Architecture API", map[string]string{
-				"status":  "operational",
-				"version": "v1.0.0",
-			})
+	// Basic liveness probe
+	r.Get("/health", func(w http.ResponseWriter, r *http.Request) {
+		response.Success(w, "server is operational", map[string]string{
+			"status": "healthy",
 		})
 	})
 

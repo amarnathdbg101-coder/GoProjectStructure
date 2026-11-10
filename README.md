@@ -1,31 +1,41 @@
-# 🚀 Go Clean Architecture Starter
+# 🚀 GoProjectStructure (Minimal Clean Architecture Starter)
 
-A minimal, production-grade, unopinionated **Go Clean Architecture Starter Template** designed for high-performance microservices, REST APIs, and backend systems.
+A lightweight, unopinionated **Go Clean Architecture Starter Kit & Library** designed for building fast, maintainable backend services and REST APIs in Go.
 
-Built to be **lightweight, flexible, and plug-and-play** with the [`@amarnathdbg101-coder`](https://github.com/amarnathdbg101-coder) modular library collection.
+Zero bloat. Zero duplicate loggers, hardcoded configs, or redundant middlewares. Built specifically to be composed with your modular library collection (`C:\Library` / `@amarnathdbg101-coder/go/...`).
 
 ---
 
-## 📁 Project Architecture
+## 🎯 Philosophy
+
+- **Zero Bloat**: No hardcoded Zap, no hardcoded Godotenv, no hardcoded database drivers, no hardcoded migrations.
+- **Unopinionated**: You pick your database (`pgx`, `database/sql`, `mongo`), your logger (`go-colorlog`, `slog`), your config (`go-env`), and your auth (`go-jwt`).
+- **Clean Contracts**: Provides clean abstractions for Domain, Service, Repository, and Transport layers.
+- **Production Server Lifecycle**: Built-in graceful HTTP server runner (`server.New(handler)`) with context-aware signal trapping (SIGINT / SIGTERM).
+- **Uniform Responses**: Standardized JSON response envelope (`response.Success`, `response.Error`, `response.Created`).
+
+---
+
+## 📁 Architecture Overview
 
 ```
 GoProjectStructure/
 ├── cmd/
-│   ├── api/main.go           # Server bootstrap, signal handling, graceful shutdown
-│   └── migrate/main.go       # PostgreSQL database migration CLI
+│   └── api/
+│       └── main.go          # Minimal runnable server entrypoint
 ├── internal/
-│   ├── handler/              # Health probes, JSON response helpers, Chi router
-│   │   ├── health_handler.go # /health, /health/live, /health/ready
-│   │   ├── response.go       # Standardized API response format (Success, Error)
-│   │   └── router.go         # Chi router configuration & route registry
-│   ├── migration/            # SQL migration files
-│   └── worker/               # Background concurrent worker skeleton (ctx.Done)
-├── pkg/
-│   ├── config/               # .env and environment variable loader
-│   ├── database/             # PostgreSQL pgxpool connection & transaction helpers
-│   └── middleware/           # Logger (Zap), Recoverer, CORS, RequestID, Security, RateLimit
-├── .env.example              # Sample environment configuration
-├── go.mod                    # Go 1.25+ module definition
+│   ├── domain/              # Business entities & error definitions (pure Go)
+│   ├── repository/          # Storage interface contracts
+│   ├── service/             # Business logic interface contracts
+│   └── handler/
+│       └── router.go        # Chi router setup without hardcoded bloat
+├── response/
+│   ├── response.go          # Standard JSON API envelopes (Success, Error, Message)
+│   └── response_test.go     # Unit tests
+├── server/
+│   ├── server.go            # Production HTTP server runner with Graceful Shutdown
+│   └── server_test.go       # Unit tests
+├── go.mod                   # Zero bloat (only go-chi/chi/v5)
 └── README.md
 ```
 
@@ -33,50 +43,84 @@ GoProjectStructure/
 
 ## ⚡ Quick Start
 
-### 1. Clone or Use as Template
+### 1. Installation
+
 ```bash
-git clone git@github.com:amarnathdbg101-coder/GoProjectStructure.git my-service
-cd my-service
+go get github.com/amarnathdbg101-coder/GoProjectStructure@latest
 ```
 
-### 2. Configure Environment
+Or clone directly as a project starter template:
 ```bash
-cp .env.example .env
+git clone git@github.com:amarnathdbg101-coder/GoProjectStructure.git my-project
+cd my-project
+```
+
+### 2. Plug in Your Modular Libraries
+
+Compose your project using your specialized libraries:
+
+```go
+package main
+
+import (
+	"log"
+	"net/http"
+
+	"github.com/amarnathdbg101-coder/GoProjectStructure/internal/handler"
+	"github.com/amarnathdbg101-coder/GoProjectStructure/response"
+	"github.com/amarnathdbg101-coder/GoProjectStructure/server"
+	"github.com/go-chi/chi/v5"
+
+	// Your custom library collection from C:\Library:
+	// "github.com/amarnathdbg101-coder/go/go-colorlog"
+	// "github.com/amarnathdbg101-coder/go/go-env"
+	// "github.com/amarnathdbg101-coder/go/go-cors"
+	// "github.com/amarnathdbg101-coder/go/go-shutdown"
+	// "github.com/amarnathdbg101-coder/go/go-jwt"
+	// "github.com/amarnathdbg101-coder/go/go-tinylfu"
+)
+
+func main() {
+	// 1. Initialize lightweight router
+	r := handler.NewRouter()
+
+	// 2. Mount domain routes
+	r.Route("/api/v1", func(api chi.Router) {
+		api.Get("/welcome", func(w http.ResponseWriter, r *http.Request) {
+			response.Success(w, "Welcome to Go Clean Architecture!", map[string]string{
+				"version": "1.0.0",
+			})
+		})
+	})
+
+	// 3. Start server with automatic graceful shutdown
+	srv := server.New(r, server.Config{
+		Port: "8080",
+	})
+
+	log.Printf("Server listening on http://localhost%s", srv.Addr())
+	if err := srv.Start(); err != nil {
+		log.Fatalf("Server stopped: %v", err)
+	}
+}
 ```
 
 ### 3. Run the Server
+
 ```bash
 go run ./cmd/api
 ```
 
-Health check is live at:
+---
+
+## 🧪 Testing
+
 ```bash
-curl http://localhost:8080/health
+go test -v ./...
 ```
 
 ---
 
-## 🔌 Plug-and-Play with Custom Libraries (`C:\Library`)
+## 📄 License
 
-This starter is intentionally unopinionated and free of hardcoded business domains. Easily add your preferred libraries on demand:
-
-| Capability | Library Package | Installation Command |
-| :--- | :--- | :--- |
-| **Authentication & RBAC** | `go-authkit` | `go get github.com/amarnathdbg101-coder/go-authkit` |
-| **JWT Tokens** | `go-jwt` | `go get github.com/amarnathdbg101-coder/go-jwt` |
-| **High-Speed Cache** | `go-cachekit` / `go-tinylfu` | `go get github.com/amarnathdbg101-coder/go-tinylfu` |
-| **Password Hashing** | `go-crypto` / `go-hashkit` | `go get github.com/amarnathdbg101-coder/go-crypto` |
-| **Concurrency Supervision** | `go-supervisor` | `go get github.com/amarnathdbg101-coder/go-supervisor` |
-| **Adaptive Rate Limiting** | `go-adaptivelimit` | `go get github.com/amarnathdbg101-coder/go-adaptivelimit` |
-| **Bulkhead Isolation** | `go-bulkhead` | `go get github.com/amarnathdbg101-coder/go-bulkhead` |
-| **Input Validation** | `go-validator` | `go get github.com/amarnathdbg101-coder/go-validator` |
-
----
-
-## 🛡️ Built-in Features
-
-- **Chi Router**: Lightweight, standard library compliant `net/http` router.
-- **Graceful Shutdown**: Intercepts `SIGINT` / `SIGTERM` with 10-second drain window.
-- **PostgreSQL Connection Pool**: Native `jackc/pgx/v5` connection pooling.
-- **Security Middlewares**: Strict CORS, Security Headers, Panic Recovery, Request Tracing.
-- **Kubernetes Ready**: Dedicated `/health/live` and `/health/ready` endpoints.
+MIT License. Crafted with clean architecture principles.
