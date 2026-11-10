@@ -52,29 +52,25 @@ Is document me project ki **har ek file aur directory ka exact role, purpose, au
 
 ---
 
-## 🏢 `internal/handler/` (Business Domain Layer)
+## 🏢 Clean Production Layers (`internal/`)
 
-Ye folder project ka core business logic hold karta hai:
+Ye folders project ke core architecture ko clean aur maintainable banate hain:
 
-### 1. `internal/handler/model/` (Database Entities)
-- **`user.go`**: `users` table ka Go struct representation (`ID`, `Name`, `Email`, `Password`, `Role`, `CreatedAt`, etc.).
+### 1. `internal/model/` (Entities & DTOs)
+- **`user.go`**: `users` table entity (`User`) aur sath me Request/Response DTOs (`RegisterRequest`, `LoginRequest`, `AuthResponse`, `UserResponse`).
 
-### 2. `internal/handler/dto/` (Data Transfer Objects)
-- **`auth_dto.go`**: Request & Response schemas with validation tags (e.g. `RegisterRequest`, `LoginRequest`, `AuthResponse`).
-
-### 3. `internal/handler/repository/` (Raw SQL Queries)
+### 2. `internal/repository/` (Raw SQL Queries)
 - **`user_repository.go`**: High-performance parameterized SQL queries (`FindByEmail`, `Create`, `FindByID`) using `pgxpool.Pool`.
 
-### 4. `internal/handler/services/` (Business Logic)
+### 3. `internal/service/` (Business Logic)
 - **`auth_service.go`**: Authentication rules, password verification via Bcrypt, JWT token issuance, aur registration workflows.
 
-### 5. `internal/handler/controller/` (HTTP Handlers)
-- **`auth_controller.go`**: HTTP endpoints for `/register`, `/login`, aur `/profile`. Inputs validate karta hai aur JSON response return karta hai.
-- **`health_controller.go`**: System health endpoints (`Check`, `Live`, `Ready`).
-- **`health_controller_test.go`**: Unit tests jo `httptest.NewRecorder()` use karke health endpoints verify karte hain.
-
-### 6. `internal/handler/routes/` (Router Wiring)
-- **`router.go`**: Chi HTTP router ka central wiring hub. Saare middlewares pipeline, Swagger UI, aur `/api/v1` routes ko mount karta hai.
+### 4. `internal/handler/` (HTTP Handlers & Router)
+- **`router.go`**: Chi HTTP router ka central wiring hub. Middlewares, Swagger UI, aur `/api/v1` routes ko mount karta hai.
+- **`auth_handler.go`**: HTTP endpoints for `/register`, `/login`, aur `/profile`. Inputs validate karta hai aur JSON response return karta hai.
+- **`health_handler.go`**: System health endpoints (`Check`, `Live`, `Ready`).
+- **`health_handler_test.go`**: Unit tests jo `httptest.NewRecorder()` use karke health endpoints verify karte hain.
+- **`response.go`**: Standardized JSON envelopes (`handler.Success`, `handler.Created`, `handler.Error`, `handler.Message`).
 
 ---
 
@@ -95,49 +91,38 @@ Ye middlewares har request aane par execute hote hain:
 
 ---
 
-## 🗄️ `internal/migration/` (Database Migrations)
-
-| File | Purpose |
-|---|---|
-| `migration.go` | Auto-migrations engine jo server start hote hi schema consistency check karta hai. |
-| `000001_create_users_table.up.sql` | `users` table create karne ka SQL script. |
-| `000001_create_users_table.down.sql` | `users` table drop karne ka rollback SQL script. |
-
----
-
-## 🧰 `internal/reuse/` (Reusable Utilities)
-
-Har naye feature me kaam aane wale general-purpose helpers:
-
-| File | Purpose |
-|---|---|
-| `pagination.go` | `?page=1&limit=10&order=desc&search=xyz` parse karta hai aur standard `PaginatedResponse` return karta hai. |
-| `cache.go` | Concurrency-safe in-memory key-value cache with TTL (Time-to-Live) aur background auto-cleanup. |
-| `errors.go` | Standardized JSON response envelopes (`reuse.Success`, `reuse.Created`, `reuse.Error`, `reuse.Message`). |
-| `validateInput.go` | `go-playground/validator/v10` wrapper jo struct validation errors ko human-readable format me convert karta hai. |
-| `generate_jwt.go` | JWT access tokens sign aur parse karta hai. |
-| `hashPassword.go` | Secure Bcrypt password hashing (Cost 12) aur password match verification. |
-| `claudeflare.go` | AWS S3 aur Cloudflare R2 file uploads aur presigned URLs ka helper. |
-| `otp.go` | Cryptographically secure 6-digit OTP generator aur SHA-256 hash validator. |
-| `slug.go` | String slugifier (e.g. "My First Post" ➡️ "my-first-post"). |
-
----
-
-## ⚙️ `internal/utils/` & `internal/servers/` & `internal/worker/`
+## 🗄️ `internal/database/` & `internal/config/`
 
 | Path | Purpose |
 |---|---|
-| `internal/utils/config.go` | `.env` variables load karta hai with fallback defaults aur required validation checks. |
-| `internal/utils/database.go` | Supabase / PgBouncer friendly PostgreSQL connection pool (`pgxpool.Pool`) initialize karta hai. |
-| `internal/utils/tx.go` | **Transaction Helper:** `utils.WithTx(ctx, db, func(tx) error { ... })` jo automatically error aane par rollback aur success par commit karta hai. |
-| `internal/servers/http.go` | Production HTTP server configuration with Read/Write timeouts aur Graceful Shutdown signals. |
-| `internal/worker/worker.go` | Background asynchronous tasks aur cron-like workers ke liye safe cancelable context template. |
+| `internal/config/config.go` | `.env` variables load karta hai with fallback defaults aur required validation checks. |
+| `internal/database/connect.go` | Supabase / PgBouncer friendly PostgreSQL connection pool (`pgxpool.Pool`) initialize karta hai. |
+| `internal/database/tx.go` | **Transaction Helper:** `database.WithTx(ctx, db, func(tx) error { ... })` jo automatically error aane par rollback aur success par commit karta hai. |
+| `internal/database/migration.go` | Auto-migrations engine jo server start hote hi schema consistency check karta hai. |
+
+---
+
+## 🧰 `internal/pkg/` (Focused Standalone Utilities)
+
+| Package | Purpose |
+|---|---|
+| `pkg/pagination` | `?page=1&limit=10&order=desc&search=xyz` parse karta hai aur standard `Respond()` envelope deta hai. |
+| `pkg/cache` | Concurrency-safe in-memory key-value cache with TTL aur background auto-cleanup. |
+| `pkg/validator` | `go-playground/validator/v10` wrapper jo struct validation errors ko human-readable format me convert karta hai. |
+| `pkg/jwt` | JWT access tokens sign aur parse karta hai. |
+| `pkg/hash` | Secure Bcrypt password hashing (Cost 12) aur password match verification. |
+| `pkg/otp` | Cryptographically secure 6-digit OTP generator aur SHA-256 hash validator. |
+| `pkg/slug` | String slugifier (e.g. "My First Post" ➡️ "my-first-post"). |
 
 ---
 
 ## ⚡ `scripts/` (Automation & Scaffolding)
 
 | File | Purpose |
+|---|---|
+| `scripts/generate-domain.bat` | Windows command-line shortcut: `.\scripts\generate-domain.bat <Name>`. |
+| `scripts/generate-domain.ps1` | Automation engine jo 2 second me complete Model, Repo, Handler, aur Migration generate karta hai. |
+| `scripts/templates/*.tpl` | Clean scaffolding templates jinhe `generate-domain` use karta hai. |
 |---|---|
 | `scripts/generate-domain.bat` | Windows command-line shortcut: `.\scripts\generate-domain.bat <Name>`. |
 | `scripts/generate-domain.ps1` | Automation engine jo 2 second me complete Model, DTO, Repo, Service, Controller, aur Migration generate karta hai. |

@@ -4,8 +4,8 @@ import (
 	"context"
 	"fmt"
 
-	"goProjectStructure/internal/handler/model"
-	"goProjectStructure/internal/reuse"
+	"goProjectStructure/internal/model"
+	"goProjectStructure/internal/pkg/pagination"
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -41,7 +41,7 @@ func (r *__PASCAL__Repository) FindByID(ctx context.Context, id int64) (*model._
 	return &item, nil
 }
 
-func (r *__PASCAL__Repository) FindAll(ctx context.Context, p reuse.PaginationParams) ([]model.__PASCAL__, int64, error) {
+func (r *__PASCAL__Repository) FindAll(ctx context.Context, p pagination.Params) ([]model.__PASCAL__, int64, error) {
 	var total int64
 	countQuery := `SELECT COUNT(*) FROM __PLURAL__`
 	if err := r.db.QueryRow(ctx, countQuery).Scan(&total); err != nil {
@@ -59,7 +59,7 @@ func (r *__PASCAL__Repository) FindAll(ctx context.Context, p reuse.PaginationPa
 	}
 	defer rows.Close()
 
-	items := make([]model.__PASCAL__, 0)
+	var items []model.__PASCAL__
 	for rows.Next() {
 		var item model.__PASCAL__
 		if err := rows.Scan(&item.ID, &item.Title, &item.Description, &item.CreatedAt, &item.UpdatedAt); err != nil {
@@ -67,17 +67,8 @@ func (r *__PASCAL__Repository) FindAll(ctx context.Context, p reuse.PaginationPa
 		}
 		items = append(items, item)
 	}
-	return items, total, nil
-}
 
-func (r *__PASCAL__Repository) Update(ctx context.Context, item *model.__PASCAL__) error {
-	query := `
-		UPDATE __PLURAL__
-		SET title = $1, description = $2, updated_at = NOW()
-		WHERE id = $3
-	`
-	_, err := r.db.Exec(ctx, query, item.Title, item.Description, item.ID)
-	return err
+	return items, total, nil
 }
 
 func (r *__PASCAL__Repository) Delete(ctx context.Context, id int64) error {

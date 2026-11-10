@@ -119,26 +119,23 @@ Maan lijiye aapko hackathon me **Product**, **Order**, **Todo**, ya **Article** 
 .\scripts\generate-domain.bat Product
 ```
 
-Ye command automatically 2 second me create kar degi:
-1. `internal/handler/model/product.go` ➡️ Database Struct
-2. `internal/handler/dto/product_dto.go` ➡️ Validation DTOs
-3. `internal/handler/repository/product_repository.go` ➡️ Database CRUD + Pagination
-4. `internal/handler/services/product_service.go` ➡️ Business Logic
-5. `internal/handler/controller/product_controller.go` ➡️ HTTP Handlers
-6. `internal/migration/<timestamp>_create_products_table.up.sql` ➡️ Table SQL migration
+Ye command automatically 2 second me create kar degi (Lean 3-Tier Production Architecture):
+1. `internal/model/product.go` ➡️ Database Struct + Request/Response DTOs
+2. `internal/repository/product_repository.go` ➡️ Database CRUD + Pagination Queries
+3. `internal/handler/product_handler.go` ➡️ HTTP Handlers & Input Validation
+4. `internal/migration/<timestamp>_create_products_table.up.sql` ➡️ Table SQL migration
 
 ### Step 2: Route Mount Karein
-`internal/handler/routes/router.go` me jaakar command dwara batayi gayi 4 lines paste kar dein:
+`internal/handler/router.go` me jaakar command dwara batayi gayi lines paste kar dein:
 ```go
 productRepo := repository.NewProductRepository(db)
-productService := services.NewProductService(productRepo)
-productCtrl := controller.NewProductController(productService)
+productH := NewProductHandler(productRepo)
 
 r.Route("/api/v1/products", func(r chi.Router) {
-    r.Get("/", productCtrl.List)
-    r.Get("/{id}", productCtrl.GetByID)
-    r.Post("/", productCtrl.Create)
-    r.Delete("/{id}", productCtrl.Delete)
+    r.Get("/", productH.List)
+    r.Get("/{id}", productH.GetByID)
+    r.Post("/", productH.Create)
+    r.Delete("/{id}", productH.Delete)
 })
 ```
 
@@ -162,12 +159,12 @@ task test
 Agar aap kisi AI (ChatGPT, Claude, Gemini, Cursor) se code likhwa rahe hain, toh use bas ye prompt paste karein:
 
 ```text
-I am using the modular Go backend template located in C:\Go\GoProjectStructure.
+I am using the clean, lean Go backend template located in C:\Go\GoProjectStructure.
 Follow these strict architectural rules:
-1. Flow: Route -> Controller -> Service -> Repository -> Database.
-2. DTOs: Define all request/response schemas in `internal/handler/dto/` with `validate:"..."` tags.
-3. Validation: Use `reuse.ValidateStruct()` to return standardized 422 JSON errors.
-4. Response Format: Always use `reuse.Success()`, `reuse.Created()`, `reuse.PaginatedResponse()`, or `reuse.Error()`.
-5. Database: Use raw parameterized SQL queries with `pgxpool.Pool` (no heavy ORM). Use `utils.WithTx()` for multi-step transactions.
+1. Flow: Route -> Handler -> Service -> Repository -> Database (or Handler -> Repository for simple CRUD).
+2. Models & DTOs: Define all entity and request/response schemas together in `internal/model/<entity>.go` with `validate:"..."` tags.
+3. Validation: Use `validator.ValidateStruct()` to return standardized 422 JSON errors.
+4. Response Format: Always use `handler.Success()`, `handler.Created()`, `pagination.Respond()`, or `handler.Error()`.
+5. Database: Use raw parameterized SQL queries with `pgxpool.Pool` (no heavy ORM). Use `database.WithTx()` for multi-step atomic transactions.
 6. Security: Protect sensitive routes using `middleware.JWTAuth(cfg.JwtSecret)`.
 ```

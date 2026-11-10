@@ -15,7 +15,7 @@ if (!(Test-Path "$rootDir\internal")) {
 $tplDir = "$PSScriptRoot\templates"
 $utf8NoBom = New-Object System.Text.UTF8Encoding $false
 
-Write-Host "⚡ Scaffolding domain: $Pascal..." -ForegroundColor Cyan
+Write-Host "⚡ Scaffolding clean production domain: $Pascal..." -ForegroundColor Cyan
 
 function Process-Template($tplName, $targetPath) {
     $content = [System.IO.File]::ReadAllText("$tplDir\$tplName")
@@ -23,32 +23,22 @@ function Process-Template($tplName, $targetPath) {
     [System.IO.File]::WriteAllText($targetPath, $content, $utf8NoBom)
 }
 
-# 1. Model
-$modelFile = "$rootDir\internal\handler\model\$Lower.go"
+# 1. Model & DTOs
+$modelFile = "$rootDir\internal\model\$Lower.go"
 Process-Template "model.go.tpl" $modelFile
 Write-Host "  [+] Created Model: $modelFile" -ForegroundColor Green
 
-# 2. DTO
-$dtoFile = "$rootDir\internal\handler\dto\${Lower}_dto.go"
-Process-Template "dto.go.tpl" $dtoFile
-Write-Host "  [+] Created DTO: $dtoFile" -ForegroundColor Green
-
-# 3. Repository
-$repoFile = "$rootDir\internal\handler\repository\${Lower}_repository.go"
+# 2. Repository (pgxpool queries)
+$repoFile = "$rootDir\internal\repository\${Lower}_repository.go"
 Process-Template "repository.go.tpl" $repoFile
 Write-Host "  [+] Created Repository: $repoFile" -ForegroundColor Green
 
-# 4. Service
-$serviceFile = "$rootDir\internal\handler\services\${Lower}_service.go"
-Process-Template "services.go.tpl" $serviceFile
-Write-Host "  [+] Created Service: $serviceFile" -ForegroundColor Green
+# 3. HTTP Handler (Chi endpoints & validation)
+$handlerFile = "$rootDir\internal\handler\${Lower}_handler.go"
+Process-Template "handler.go.tpl" $handlerFile
+Write-Host "  [+] Created Handler: $handlerFile" -ForegroundColor Green
 
-# 5. Controller
-$controllerFile = "$rootDir\internal\handler\controller\${Lower}_controller.go"
-Process-Template "controller.go.tpl" $controllerFile
-Write-Host "  [+] Created Controller: $controllerFile" -ForegroundColor Green
-
-# 6. Migrations
+# 4. Database SQL Migrations
 $timestamp = (Get-Date).ToString("yyyyMMddHHmmss")
 $upMig = "$rootDir\internal\migration\${timestamp}_create_${Plural}_table.up.sql"
 $downMig = "$rootDir\internal\migration\${timestamp}_create_${Plural}_table.down.sql"
@@ -57,15 +47,14 @@ Process-Template "migration_down.sql.tpl" $downMig
 Write-Host "  [+] Created Migrations: $upMig" -ForegroundColor Green
 
 Write-Host ""
-Write-Host "🚀 Domain $Pascal created successfully!" -ForegroundColor Green
-Write-Host "👉 Wire it in internal/handler/routes/router.go in 4 lines:" -ForegroundColor Yellow
+Write-Host "🚀 Domain $Pascal created successfully (Lean 3-Tier Production Architecture)!" -ForegroundColor Green
+Write-Host "👉 Mount it in internal/handler/router.go in 2 steps:" -ForegroundColor Yellow
 Write-Host "    ${Lower}Repo := repository.New${Pascal}Repository(db)" -ForegroundColor Cyan
-Write-Host "    ${Lower}Service := services.New${Pascal}Service(${Lower}Repo)" -ForegroundColor Cyan
-Write-Host "    ${Lower}Ctrl := controller.New${Pascal}Controller(${Lower}Service)" -ForegroundColor Cyan
+Write-Host "    ${Lower}H := New${Pascal}Handler(${Lower}Repo)" -ForegroundColor Cyan
 Write-Host ""
 Write-Host "    r.Route(`/api/v1/$Plural`, func(r chi.Router) {" -ForegroundColor Cyan
-Write-Host "        r.Get(`/`, ${Lower}Ctrl.List)" -ForegroundColor Cyan
-Write-Host "        r.Get(`/{id}`, ${Lower}Ctrl.GetByID)" -ForegroundColor Cyan
-Write-Host "        r.Post(`/`, ${Lower}Ctrl.Create)" -ForegroundColor Cyan
-Write-Host "        r.Delete(`/{id}`, ${Lower}Ctrl.Delete)" -ForegroundColor Cyan
+Write-Host "        r.Get(`/`, ${Lower}H.List)" -ForegroundColor Cyan
+Write-Host "        r.Get(`/{id}`, ${Lower}H.GetByID)" -ForegroundColor Cyan
+Write-Host "        r.Post(`/`, ${Lower}H.Create)" -ForegroundColor Cyan
+Write-Host "        r.Delete(`/{id}`, ${Lower}H.Delete)" -ForegroundColor Cyan
 Write-Host "    })" -ForegroundColor Cyan

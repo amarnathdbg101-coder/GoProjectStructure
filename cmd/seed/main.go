@@ -6,8 +6,9 @@ import (
 	"os"
 	"time"
 
-	"goProjectStructure/internal/reuse"
-	"goProjectStructure/internal/utils"
+	"github.com/amarnathdbg101-coder/GoProjectStructure/pkg/config"
+	"github.com/amarnathdbg101-coder/GoProjectStructure/pkg/database"
+	"github.com/amarnathdbg101-coder/GoProjectStructure/pkg/hash"
 
 	"github.com/jackc/pgx/v5/pgxpool"
 )
@@ -15,8 +16,8 @@ import (
 func main() {
 	log.Println("🌱 Starting Database Seeder...")
 
-	cfg := utils.MustLoad()
-	db, err := utils.ConnectDB(cfg.DBURL)
+	cfg := config.MustLoad()
+	db, err := database.ConnectDB(cfg.DBURL)
 	if err != nil {
 		log.Fatalf("Failed to connect to database: %v", err)
 	}
@@ -27,9 +28,6 @@ func main() {
 
 	// 1. Seed Admin User
 	seedAdminUser(ctx, db)
-
-	// 2. Add your custom domain seeders here:
-	// seedCustomEntities(ctx, db)
 
 	log.Println("🌱 Database seeding completed successfully!")
 	os.Exit(0)
@@ -50,20 +48,20 @@ func seedAdminUser(ctx context.Context, db *pgxpool.Pool) {
 		return
 	}
 
-	hashedPassword, err := reuse.HashPassword(password)
+	hashedPassword, err := hash.HashPassword(password)
 	if err != nil {
 		log.Fatalf("🌱 Failed to hash admin password: %v", err)
 	}
 
 	queryInsert := `
-		INSERT INTO users (name, email, password, role, is_active, created_at, updated_at)
+		INSERT INTO users (full_name, email, password_hash, role, is_active, created_at, updated_at)
 		VALUES ($1, $2, $3, $4, true, NOW(), NOW())
 		ON CONFLICT (email) DO NOTHING
 	`
 	_, err = db.Exec(ctx, queryInsert, name, email, hashedPassword, role)
 	if err != nil {
-		log.Printf(" Warning: Could not insert admin user: %v", err)
-	} else {
-		log.Printf("ðŸŽ‰ Seeded default admin user: %s (password: %s)", email, password)
+		log.Fatalf("🌱 Failed to insert admin user: %v", err)
 	}
+
+	log.Printf("🌱 Default Admin User seeded: %s (Password: %s)", email, password)
 }

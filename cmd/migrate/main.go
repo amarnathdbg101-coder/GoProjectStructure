@@ -4,7 +4,8 @@ import (
 	"fmt"
 	"log"
 	"os"
-	"goProjectStructure/internal/utils"
+
+	"github.com/amarnathdbg101-coder/GoProjectStructure/pkg/config"
 
 	"github.com/golang-migrate/migrate/v4"
 	_ "github.com/golang-migrate/migrate/v4/database/postgres"
@@ -17,7 +18,7 @@ func main() {
 		return
 	}
 
-	cfg := utils.MustLoad()
+	cfg := config.MustLoad()
 	m, err := migrate.New("file://internal/migration", cfg.DBURL)
 	if err != nil {
 		log.Fatalf("failed to create migration instance: %v", err)
