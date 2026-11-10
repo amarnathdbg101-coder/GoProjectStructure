@@ -7,8 +7,6 @@ import (
 	_ "github.com/amarnathdbg101-coder/GoProjectStructure/docs"
 	"github.com/amarnathdbg101-coder/GoProjectStructure/pkg/config"
 	"github.com/amarnathdbg101-coder/GoProjectStructure/pkg/middleware"
-	"github.com/amarnathdbg101-coder/GoProjectStructure/internal/repository"
-	"github.com/amarnathdbg101-coder/GoProjectStructure/internal/service"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -20,7 +18,7 @@ import (
 func RouteSetup(db *pgxpool.Pool, logger *zap.Logger, cfg config.Config) *chi.Mux {
 	r := chi.NewRouter()
 
-	// Global Middlewares Pipeline (Order: RequestID -> Recoverer -> Security -> Logger -> CORS -> RateLimit)
+	// Global Middlewares Pipeline (RequestID -> Recoverer -> Security -> Logger -> CORS -> RateLimit)
 	r.Use(middleware.RequestID)
 	r.Use(middleware.Recoverer(logger))
 	r.Use(middleware.SecurityHeaders)
@@ -41,24 +39,13 @@ func RouteSetup(db *pgxpool.Pool, logger *zap.Logger, cfg config.Config) *chi.Mu
 	r.Get("/health/live", healthH.Live)
 	r.Get("/health/ready", healthH.Ready)
 
-	// 3. Domain Repositories
-	userRepo := repository.NewUserRepository(db, logger)
-
-	// 4. Domain Services
-	authService := service.NewAuthService(userRepo, cfg.JwtSecret)
-
-	// 5. Domain Handlers
-	authH := NewAuthHandler(authService)
-
-	// 6. API v1 Routes
+	// 3. API v1 Routes (Mount your domain handlers here)
 	r.Route("/api/v1", func(r chi.Router) {
-		// Public Auth routes
-		r.Route("/auth", func(r chi.Router) {
-			r.Post("/register", authH.Register)
-			r.Post("/login", authH.Login)
-
-			// Protected user profile route
-			r.With(middleware.JWTAuth(cfg.JwtSecret)).Get("/profile", authH.Me)
+		r.Get("/welcome", func(w http.ResponseWriter, r *http.Request) {
+			Success(w, "Welcome to Go Clean Architecture API", map[string]string{
+				"status":  "operational",
+				"version": "v1.0.0",
+			})
 		})
 	})
 
